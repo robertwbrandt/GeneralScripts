@@ -1,0 +1,99 @@
+#! /bin/sh
+##############################################################################
+##############################################################################
+# Author: Bob Brandt projects@brandt.ie,                                     #
+#                                                                            #
+# saveswitch switch username password                                        #
+#                                                                            #
+#  The purpose of this script it to save to configuration of the Alcatel     #
+# switches in the network.  This is needed because not every VLAN/Port       #
+# change is saved and if the switch/stack were to reboot you may loss your   #
+# configuration changes.                                                     #
+#                                                                            #
+# Comments can be used but must be preceeded by a hash symbol (#)            #
+# All Comments are to be preceded by a hash symbol (#) (Maximum of 78 chars) #
+#                                                                            #
+##############################################################################
+##############################################################################
+debug=/dev/null
+domains=("" ".opw.mgmt" ".opw.ie")
+
+# Get Commandline Parameters
+prompt=$1
+username=$2
+password=$3
+
+# Set Mail Information
+set smtp=smtp.opw.ie
+from=saveswitch@opw.ie
+to=alerts@opw.ie
+
+#Set Copy Information
+mountpoint="/mnt/opw-filer01/dublingroups"
+networkshare="//opw-filer01/dublingroups"
+networkusername="OPW-AD/backupadmin"
+networkpassword="C0mmv@ult"
+filepath="IT Unit/Backups/Switches"
+
+
+# Resolve Host IP Address
+host=
+for domain in "${domains[@]}"; do
+	hostname=$prompt$domain
+	hostip=`host $hostname | grep "address" | head -n 1 | sed -n "s|.*address ||p"`
+	if ping -c 1 $hostip > /dev/null 2>&1
+	then
+		host=$hostip
+		break
+	fi
+done
+if [ -z "$host" ]; then
+	logmsg="Unable to resolve IP Address for $prompt."
+#	echo -e "$logmsg" | mailx -s "$logmsg" -r $from $to
+	logger -s -t "$prompt" $logmsg
+	exit 10
+fi
+
+# Backup the configuration on the switch
+backupoutput=`/opt/opw/saveswitch/AlcatelSave "$host" "$prompt" "$username" "$password" 2>&1`
+declare -i backupstatus=$?
+
+if [[ "$backupstatus" == "0" ]]; then
+	logmsg="The configuration on $prompt ($host) was saved successfully."
+else
+	logmsg="Unable to save the configuration on $prompt ($host). Error $status"
+#	echo -e "$backupoutput" | mailx -s "$logmsg" -r $from $to
+fi
+logger -t "$prompt" $logmsg
+echo $logmsg
+
+
+# Make sure that the Filer is mounted
+test -d $mountpoint || mkdir $mountpoint > $debug 2>&1
+if ! mount | grep "$networkshare.*$mountpoint.*type.*cifs" > $debug 2>&1
+then
+	mount -t cifs $networkshare $mountpoint -o username=$networkusername,password=$networkpassword > $debug 2>&1
+fi
+
+# Get the config (boot.cfg) and store it on the SAN
+mkdir /tmp/$prompt > $debug 2>&1
+pushd /tmp/$prompt > $debug 2>&1
+rm -f boot.cfg > $debug 2>&1
+sftpoutput=`/opt/opw/saveswitch/AlcatelSFTP "$host" "$username" "$password" "/flash/working/boot.cfg" 2>&1`
+declare -i sftpstatus=$?
+mv /tmp/$prompt/boot.cfg "$mountpoint/$filepath/$prompt.boot.cfg" > $debug 2>&1 || sftpstatus = 10
+popd > $debug 2>&1
+rm -r /tmp/$prompt > $debug 2>&1
+cat $debug
+
+if [[ "$sftpstatus" == "0" ]]; then
+	logmsg="The config file (boot.cfg) on $prompt ($host) was saved successfully."
+else
+	logmsg="Unable to save the config file (boot.cfg) on $prompt ($host)."
+#	echo -e "$backupoutput" | mailx -s "$logmsg" -r $from $to
+fi
+logger -t "$prompt" $logmsg
+echo $logmsg
+
+exit $((backupstatus + sftpstatus))
+

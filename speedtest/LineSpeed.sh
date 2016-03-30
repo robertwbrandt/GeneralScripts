@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+#     Script to Email DFM Messages to Administrators
+#     Bob Brandt <projects@brandt.ie>
+#  
+VERSION=0.1
+LOG_FILE="/var/log/speedtest.log"
+XML_FILE="/var/log/speedtest.xml"
+XSLT_FILE="/opt/opw/speedtest/speedtest.xslt"
+TMP_HTML="/opt/opw/speedtest/dfm-watch.html"
+
+smtp="smtp.opw.ie"
+from="linespeed@opw.ie"
+to="networkalerts@opw.ie"
+
+usage() {
+        [ "$2" == "" ] || echo -e "$2"
+        echo -e "Usage: $0 [options]"
+        echo -e "Options:"
+        echo -e " -h, --help     display this help and exit"
+        echo -e " -v, --version  output version information and exit"       
+        exit ${1:-0}
+}
+
+version() {
+        echo -e "$0 $VERSION"
+        echo -e "Copyright (C) 2011 Free Software Foundation, Inc."
+        echo -e "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>."
+        echo -e "This is free software: you are free to change and redistribute it."
+        echo -e "There is NO WARRANTY, to the extent permitted by law.\n"
+        echo -e "Written by Bob Brandt <projects@brandt.ie>."
+        exit 0
+}
+
+# Execute getopt
+ARGS=$(getopt -o tvh -l "help,version" -n "$0" -- "$@") || usage 1 " "
+
+#Bad arguments
+#[ $? -ne 0 ] && usage 1 "$0: No arguments supplied!\n"
+
+eval set -- "$ARGS";
+
+while /bin/true ; do
+	case "$1" in
+        -h | --help )         usage 0 ;;
+        -v | --version )      version ;;
+        -- )                  shift ; break ;;
+        * )                   usage 1 "$0: Invalid argument!\n" ;;
+        esac
+        shift
+done
+
+TITLE="Line Speed Summary for $( date '+%d %b %Y' )"
+
+mv "$LOG_FILE" "$XML_FILE"
+sed -i -e '1i<results>\' "$XML_FILE"
+sed -i -e '1i<?xml version="1.0" encoding="UTF-8"?>\' "$XML_FILE"
+echo "</results>" >> "$XML_FILE"
+
+
+if xsltproc "$XSLT_FILE" "$XML_FILE" > "$TMP_HTML"
+then
+	sed -i "s|<h2>Line Speed Summary</h2>|<h2>$TITLE</h2>|" "$TMP_HTML"
+	if /opt/opw/speedtest/smtpSend.py --from "$from" --to "$to" --subject "$TITLE" --server "$smtp" --html "$TMP_HTML"
+	then
+		logger -t "LineSpeed" "Line Speed Summary email sent."
+	fi
+	rm "$TMP_HTML"
+fi
+
+exit 0
+
+

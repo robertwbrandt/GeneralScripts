@@ -1,0 +1,59 @@
+
+Session prompt default HatchSt-STK2
+System name HatchSt-STK2
+System location "17 / 19 Lower Hatch Street, Dublin 2"
+
+System contact "NextiraOne (Chris Melbourne - 086-852-7373)"
+user administrator password c1sc0d00r5nt
+user administrator read-write all
+
+ip name-server 10.201.200.10 10.200.200.11 10.200.200.10
+ip domain-name opw.mgmt
+ip domain-lookup
+ntp server stratum1.ntp.opw.ie
+ntp client enable
+swlog output socket 10.200.200.69
+aaa radius-server "rad1" host radius1.opw.ie key opwradius retransmit 3 timeout 2 auth-port 1812 acct-port 1813 
+aaa radius-server "rad2" host radius2.opw.ie key opwradius retransmit 3 timeout 2 auth-port 1812 acct-port 1813 
+aaa radius-server "rad3" host radius3.opw.ie key opwradius retransmit 3 timeout 2 auth-port 1812 acct-port 1813 
+aaa authentication default "local" 
+aaa authentication console "local"
+aaa authentication telnet "rad1" "rad2" "rad3" "local" 
+aaa authentication ftp "rad1" "rad2" "rad3" "local" 
+aaa authentication http "rad1" "rad2" "rad3" "local" 
+aaa authentication snmp "local" 
+aaa authentication ssh "rad1" "rad2" "rad3" "local" 
+scp-sftp enable
+
+snmp security no security
+no snmp community map public
+snmp community map "opw-rw" user "opw-rw" on
+snmp community map "opw_public" on
+snmp station 10.200.200.33 162 "opw-rw" v2 enable
+snmp station 10.201.200.33 162 "opw-rw" v2 enable
+snmp trap filter 10.200.200.33 1 4 5 6 7 8
+snmp trap filter 10.200.200.33 9 11 12 13 14 15
+snmp trap filter 10.200.200.33 16 17 18 19 20 21
+snmp trap filter 10.200.200.33 22 23 24 25 28 29
+snmp trap filter 10.200.200.33 30 33 34 35 36 37
+snmp trap filter 10.200.200.33 38 39 40 41 42 47
+snmp trap filter 10.200.200.33 48 49 50 51 52 53
+snmp trap filter 10.200.200.33 54 55 56 57 58 59
+snmp trap filter 10.200.200.33 60 61 62 63 64 65
+snmp trap filter 10.200.200.33 66 67 68 69 70
+snmp trap filter 10.201.200.33 1 4 5 6 7 8
+snmp trap filter 10.201.200.33 9 11 12 13 14 15
+snmp trap filter 10.201.200.33 16 17 18 19 20 21
+snmp trap filter 10.201.200.33 22 23 24 25 28 29
+snmp trap filter 10.201.200.33 30 33 34 35 36 37
+snmp trap filter 10.201.200.33 38 39 40 41 42 47
+snmp trap filter 10.201.200.33 48 49 50 51 52 53
+snmp trap filter 10.201.200.33 54 55 56 57 58 59
+snmp trap filter 10.201.200.33 60 61 62 63 64 65
+snmp trap filter 10.201.200.33 66 67 68 69 70
+
+write memory
+copy working certified flash-synchro
+copy working certified
+
+

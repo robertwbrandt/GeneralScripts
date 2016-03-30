@@ -1,0 +1,40 @@
+#!/bin/bash
+
+filetypes='.*\.\(avi\|rm\|mp1\|mp2\|mp3\|mp4\|wma\|mod\|cda\|mid\|m3u\|pls\|xm\|asf\|rmi\|midi\|au\|aif\|wav\)'
+
+usage() {
+	echo -e "Usage: $0 FILE..."
+	exit ${1-0}
+}
+
+findfile() {
+	dir=$1
+	if ! [ "${dir##*/}" == "~snapshot" ] && [ -d "$dir" ] ; then
+		find "$dir" -printf "%t\t%p\n"
+	fi
+}
+
+case "$#" in
+    0)
+	$0 $(pwd)/*
+	;;
+    1)
+	case "$1" in
+	    -h|-?|--help)
+		usage 0
+		;;
+	    *)
+		findfile "$1"
+		;;
+	esac
+	;;
+    *)
+	for dir in "$@"
+	do
+		findfile "$dir"
+	done
+	;;
+esac
+
+exit $?
+

@@ -1,0 +1,39 @@
+From: mediafiles@opw.ie
+To: bob.brandt@opw.ie
+Subject: We hate you, so we send HTML instead of plain text
+Server: smtp.opw.ie
+Mime-Version: 1.0
+Content-type: text/html
+Content-transfer-encoding: 8bit
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 TRANSITIONAL//EN">
+<HTML>
+<HEAD>
+  <META HTTP-EQUIV="Content-Type" CONTENT="text/html; CHARSET=UTF-8">
+  <META NAME="GENERATOR" CONTENT="GtkHTML/3.24.1.1">
+</HEAD>
+<BODY>
+
+<TT><FONT COLOR="#000000"><A HREF="\\opw-filer02\dublinusers\beagont\BEAGON\Revit course\AOTC - Revit Architecture 2008 Essentials.mid">\\opw-filer02\dublinusers\beagont\BEAGON\Revit</FONT></TT><TT> </TT><TT><FONT COLOR="#000000">course\AOTC - Revit Architecture 2008 Essentials.mid</A></FONT></TT><BR>
+
+/mnt/opw-filer02/dublinusers/bloxhama/WEB/y2007_orphanstars_story.mp3
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems01.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems02.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems03.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems04.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems05.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems06.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems07.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems08.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems09.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems10.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems11.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/4 EMS Sounds/ems12.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/1 Ringer Melodies/Caribic.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/1 Ringer Melodies/Caribic2.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/1 Ringer Melodies/Swingy.mid
+/mnt/opw-filer02/dublinusers/brandtb/Personal/downloads/S55/extras/1 Ringer Melodies/Siemens Swing.mid
+
+</BODY>
+</HTML>
+

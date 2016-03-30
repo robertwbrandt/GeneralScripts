@@ -1,0 +1,89 @@
+#!/bin/sh
+#
+#     Script to delete old files from the Scanner Directories
+#     Bob Brandt <projects@brandt.ie>
+#          
+#
+
+CLEANUP_MOUNTOPTS="setuids,dir_mode=0777,file_mode=0666,rw"
+CLEANUP_MOUNTDIR="/mnt/scanner"
+CLEANUP_AUTH_FILE="/opt/opw/ScannerCleanup/authenticationfile"
+CLEANUP_DAYS=4
+
+username="${1-scanner}"
+password="${2-scanner}"
+domain="${3-opw-ad}"
+
+getscannershares() {
+	server=$1
+	creds="$2"
+	echo -e "$2" > "$CLEANUP_AUTH_FILE"
+	smbclient -A "$CLEANUP_AUTH_FILE" -L "$server" 2> /dev/null | sed -n "s|disk.*||pig" | grep -i "scanner" | sed "s|^\s*|//$server/|"
+}
+mountscannershare() {
+	share="$1"
+	mountdir="$2"
+	mountopts="$3"
+
+	test -d "$mountdir" || ( mkdir "$mountdir" && chmod 777 "$mountdir" 2> /dev/null )
+
+	mount.cifs "$share" "$mountdir" -o $mountopts
+	mount | grep "$share.*$mountdir" > /dev/null 2>&1
+	return $?
+}
+umountscannershare() {
+	mountdir="$1"
+	mount | grep " $mountdir type " > /dev/null 2>&1 && umount -fl "$mountdir"
+	! mount | grep " $mountdir type " > /dev/null 2>&1
+	return $?
+}
+
+cleanup_scannershare() {
+	share="$1"
+	mountdir="$2"
+	returnstatus=0
+	tmp=
+        OLDIFS="$IFS"
+        IFS=$'\n'
+
+	mindepth=0
+	[ $( echo "$share" | tr [:upper:] [:lower:] ) == "//opw-filer03/scanner$" ] && mindepth=1
+	[ $( echo "$share" | tr [:upper:] [:lower:] ) == "//opw-filer01/scanner$" ] && mindepth=1
+
+	for item in $( ls -1 "$mountdir" | grep -v "~snapshot" 2> /dev/null )
+	do
+		for deletefile in $( find "$mountdir/$item" -type f -mtime +$CLEANUP_DAYS -print 2> /dev/null )
+		do
+			rm "$deletefile" && tmp="$tmp\n  Deleting file: ${deletefile/$mountdir/$share}"
+		done
+
+
+		for deletefolder in $( find "$mountdir/$item" -mindepth "$mindepth" -type d -empty -print 2> /dev/null )
+		do
+			rm -r "$deletefolder" && tmp="$tmp\n  Removing Empty Folder: ${deletefolder/$mountdir/$share}"
+		done		
+	done
+        IFS="$OLDIFS"
+
+	if [ -n "$tmp" ]; then
+		echo -e "Checking Scanner Share ($share)$tmp" | logger -s -t "samba-cleanup"
+		returnstatus=1
+	fi
+
+	return $returnstatus
+}
+
+for share in $( getscannershares opw-filer03 "username = $username\npassword = $password\ndomain = $domain" )
+do
+	umountscannershare "$CLEANUP_MOUNTDIR"
+	mountscannershare "$share" "$CLEANUP_MOUNTDIR" "user=$username,pass=$password,dom=$domain,$CLEANUP_MOUNTOPTS" && cleanup_scannershare "$share" "$CLEANUP_MOUNTDIR"
+	umountscannershare "$CLEANUP_MOUNTDIR"
+done
+for share in $( getscannershares opw-filer01 "username = $username\npassword = $password\ndomain = $domain" )
+do
+	umountscannershare "$CLEANUP_MOUNTDIR"
+	mountscannershare "$share" "$CLEANUP_MOUNTDIR" "user=$username,pass=$password,dom=$domain,$CLEANUP_MOUNTOPTS" && cleanup_scannershare "$share" "$CLEANUP_MOUNTDIR"
+	umountscannershare "$CLEANUP_MOUNTDIR"
+done
+
+

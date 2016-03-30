@@ -1,0 +1,13 @@
+#!/bin/bash
+
+mailserver=smtp.opw.ie
+from=mediafiles@opw.ie
+to=storagealerts@opw.ie
+
+mount -a
+set smtp=$mailserver
+/opt/opw/MediaSearch/MediaSearch /mnt/opw-filer01/dublingroups/* | mailx -s "Dublin Groups Media File Report" -r "$from" "$to" &
+/opt/opw/MediaSearch/MediaSearch /mnt/opw-filer02/dublinusers/* | mailx -s "Dublin Users Media File Report" -r "$from" "$to" &
+/opt/opw/MediaSearch/MediaSearch /mnt/opw-filer03/trimgroups/* | mailx -s "Trim Groups Media File Report" -r "$from" "$to" &
+/opt/opw/MediaSearch/MediaSearch /mnt/opw-filer04/trimusers/* | mailx -s "Trim Users Media File Report" -r "$from" "$to" &
+

@@ -1,0 +1,118 @@
+#!/usr/bin/expect -f
+##############################################################################
+##############################################################################
+# Author: Bob Brandt projects@brandt.ie,                                     #
+#                                                                            #
+# AlcatelSave host prompt username password                                  #
+#                                                                            #
+#  The purpose of this script it to save to configuration of the Alcatel     #
+# switches in the network.  This is needed because not every VLAN/Port       #
+# change is saved and if the switch/stack were to reboot you may loss your   #
+# configuration changes.                                                     #
+#                                                                            #
+# Comments can be used but must be preceeded by a hash symbol (#)            #
+# All Comments are to be preceded by a hash symbol (#) (Maximum of 78 chars) #
+#                                                                            #
+##############################################################################
+##############################################################################
+
+set host [lrange $argv 0 0]
+set prompt [lrange $argv 1 1]
+set user [lrange $argv 2 2]
+set pass [lrange $argv 3 3]
+
+#log_file /opt/opw/saveswitch/$prompt.log
+log_user 0
+set timeout 120
+spawn ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l $user $host
+
+# Login
+expect {
+	"*?assword" { 
+		sleep 1
+		send "$pass\n" 
+	}
+	"(yes/no)? " { 
+		send "yes\n"
+		expect {
+			"*?assword" { 
+				sleep 1
+				send "$pass\n" 
+			}
+	        }
+	}
+	default {
+	        send_error "$prompt ($host) Login failed\n"
+	        send_log "$prompt ($host) Login failed\n"
+	        exit 1
+	}
+}
+expect {
+	"*?assword" { 
+	        send_error "$prompt ($host) Login failed\n"
+	        send_log "$prompt ($host) Login failed\n"
+	        exit 1
+	}
+	"$prompt" { send "\n" }
+	default {
+	        send_error "$prompt ($host) Login failed\n"
+	        send_log "$prompt ($host) Login failed\n"
+	        exit 1
+	}
+}
+send_user "Login to $prompt ($host) successful.\n"
+send_log "Login to $prompt ($host) successful.\n"
+
+# Save configuration to /flash/working/boot.cfg
+expect {
+	"$prompt" { send "write memory\n" }
+	default {
+	        send_error "$prompt ($host) Write Memory Error\n"
+	        send_log "$prompt ($host) Write Memory Error\n"
+	        exit 2
+	}
+}
+expect {
+	"$prompt" { send "\n" }
+	default {
+	        send_error "$prompt ($host) Write Memory Error\n"
+	        send_log "$prompt ($host) Write Memory Error\n"
+	        exit 2
+	}
+}
+send_user "$prompt ($host) write memory successful.\n"
+send_log "$prompt ($host) write memory successful.\n"
+
+# Try to save across CMMs
+expect {
+	"$prompt" { send "copy working certified flash-synchro\n" }
+	default {
+	        send_error "$prompt ($host) Copy Working Certified Error\n"
+	        send_log "$prompt ($host) Copy Working Certified Error\n"
+	        exit 3
+	}
+}
+
+expect {
+	"Flash Synchronization process completed successfully" {
+		send "\nexit\n"
+		send_user "$prompt ($host) is a switch stack.\n$prompt ($host) Flash Synchronization process completed successfully.\nSave complete for $prompt ($host)\n\n"
+		send_log "$prompt ($host) is a switch stack.\n$prompt ($host) Flash Synchronization process completed successfully.\nSave complete for $prompt ($host)\n\n"
+		exit 0
+	}
+	"ERROR: Request failed: No Secondary CMM running" { send "copy working certified\n" }
+}
+expect {
+	"Certify process Completed" {
+		send "\nexit\n"
+		send_user "$prompt ($host) is a single switch.\n$prompt ($host) Certify process completed successfully.\nSave complete for $prompt ($host)\n\n"
+		send_log "$prompt ($host) is a single switch.\n$prompt ($host) Certify process completed successfully.\nSave complete for $prompt ($host)\n\n"
+		exit 0
+	}
+}
+
+send_error "$prompt ($host) Unknown Error\n"
+send_log "$prompt ($host) Unknown Error\n"
+exit 4
+expect eof
+

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+sshcommand="/opt/opw/VMCheck/plinkyes -l esxadmin -pw 3sxadm1n"
+host="hatchstreet-esxi"
+set smtp="smtp.opw.ie"
+from="vmcheck@opw.ie"
+to="bob.brandt@opw.ie"
+
+initiateUpdate() {
+	qtree="$1"
+	hour="$2"
+	timelimit="$3"
+	logmsg="Updating the Qtree $host:$qtree which is $hour hours out of date."
+	logger -s -t "SnapVaultUpdate" $logmsg
+	echo -e "$logmsg\n(All relationships greater than $timelimit hours old have been updated)" | mailx -s "Automatic Snapvault Update - $qtree" -r $from $to
+
+	$sshcommand $host "snapvault update $qtree"
+}
+
+command='esxcfg-info -r | grep -ie "\(Config File\|CPU Load History\|minute .* in percent age\|Active Quantile\)" | sed "/.*CPU Load History/ { N;N;N;d }" | sed -n "/.*Config File/ { N;N;N;N;N;N;p }"'
+
+echo -e "Running Command:\n$sshcommand $host \'$command\'"
+VMInfo=$( $sshcommand $host "$command" )
+
+echo $VMInfo
+
+
+

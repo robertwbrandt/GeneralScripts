@@ -1,0 +1,45 @@
+#!/bin/bash
+
+usage() {
+	echo -e "Usage: $0 FILE..."
+	exit ${1-0}
+}
+
+getdu() {
+	dir=$1
+	if ! [ "${dir##*/}" == "~snapshot" ] && [ -d "$dir" ] ; then
+		parentdate="${dir%/*}"
+		parentdate=$( ls -dtl "${parentdate:-/}" | cut -d " " -f 6,7 )
+		parentdate=$( echo $parentdate | sed -e "s|[:-]||g" -e "s| |-|" )
+
+		echo -ne "$parentdate\t"
+		du -sh $dir
+	fi
+}
+
+case "$#" in
+    0)
+	$0 $(pwd)/*
+	;;
+    1)
+	case "$1" in
+	    -h|-?|--help)
+		usage 0
+		;;
+	    *)
+		getdu "$1"
+		;;
+	esac
+	;;
+    *)
+	for dir in "$@"
+	do
+		getdu "$dir"
+	done
+	;;
+esac
+
+exit $?
+
+
+drwxrwxrwx 21 root root 0 2

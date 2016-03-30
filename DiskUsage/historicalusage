@@ -1,0 +1,10 @@
+#!/bin/bash
+
+mailserver=smtp.opw.ie
+from=groupusage@opw.ie
+to=storagealerts@opw.ie
+
+set smtp=$mailserver
+/opt/opw/DiskUsage/DiskUsage /mnt/opw-filer01/dublingroups/~snapshot/*/* | mailx -s "Dublin Historical Group Usage Report" -r "$from" "$to" &
+/opt/opw/DiskUsage/DiskUsage /mnt/opw-filer03/trimgroups/~snapshot/*/* | mailx -s "Trim Historical Group Usage Report" -r "$from" "$to" &
+

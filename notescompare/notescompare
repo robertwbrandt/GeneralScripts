@@ -1,0 +1,36 @@
+#!/bin/bash
+
+server1=dublinnotes.opw.ie
+server2=trimnotes.opw.ie
+server1log=/tmp/$server1.txt
+server2log=/tmp/$server2.txt
+difflog=/tmp/$server1-$server2.diff.txt
+
+from=notescompare@opw.ie
+to="finbar.kelleher@opw.ie deborah.mcelroy@opw.ie"
+
+/opt/opw/notescompare/plinkyes -ssh $server1 -l notesync -pw notesync ls -1 /local/notesdata/mail/*.nsf | sed -n 's|^/local/notesdata/mail/||p' | sort -f -b > $server1log
+/opt/opw/notescompare/plinkyes -ssh $server2 -l notesync -pw notesync ls -1 /local/notesdata/mail/*.nsf | sed -n 's|^/local/notesdata/mail/||p' | sort -f -b > $server2log
+
+echo -e "Files on $server1 that are not on $server2:" > $difflog
+diff -bBHi $server1log $server2log | sed -n 's|^<||p' >> $difflog
+echo -e "\nFiles on $server2 that are not on $server1:" >> $difflog
+diff -bBHi $server1log $server2log | sed -n 's|^>||p' >> $difflog
+
+declare -i size=`wc -l $difflog | cut -f 1 -d " "`
+set smtp=$server1
+if [ $size -gt 3 ]; then
+	cat $difflog | mailx -s "NSF file differences between $server1 and $server2" -r $from $to
+	logmsg="Found $size NSF file differences between $server1 and $server2."
+else
+	echo "No NSF file differences exist between $server1 and $server2" | mailx -s "No NSF file differences exist between $server1 and $server2" -r $from $to
+	logmsg="No NSF file differences exist between $server1 and $server2."
+fi
+
+echo $logmsg
+logger -t "notescompare" $logmsg
+
+rm $server1log
+rm $server2log
+rm $difflog
+

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#mailserver=smtp.opw.ie
+#from=mediafiles@opw.ie
+#to=storagealerts@opw.ie
+LOGFILE="/var/log/FileType.csv"
+mount -a
+#set smtp=$mailserver
+/opt/opw/MediaSearch/FileTypeSearch /mnt/opw-filer01/dublingroups/* > "$LOGFILE"
+/opt/opw/MediaSearch/FileTypeSearch /mnt/opw-filer02/dublinusers/* >> "$LOGFILE"
+/opt/opw/MediaSearch/FileTypeSearch /mnt/opw-filer03/trimgroups/* >> "$LOGFILE"
+/opt/opw/MediaSearch/FileTypeSearch /mnt/opw-filer04/trimusers/* >> "$LOGFILE"
+

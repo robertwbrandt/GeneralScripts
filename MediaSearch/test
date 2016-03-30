@@ -1,0 +1,7 @@
+#!/bin/bash
+
+mailserver=smtp.opw.ie
+from=mediafiles@opw.ie
+to=bob.brandt@opw.ie
+
+cat test.txt | /opt/opw/MediaSearch/pymail.py

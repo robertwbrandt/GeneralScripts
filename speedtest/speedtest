@@ -1,0 +1,31 @@
+#!/bin/sh
+LOGFILE=/var/log/speedtest.log
+
+/opt/brandt/bspeedtest/bspeedtest athenry 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest athlone 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest ballina 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest blaskets 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest botanics 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest castlebar 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest claremorris 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest collinsbrks 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest cork 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest dromahair 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest dubcastle 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest dublin-iprint 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest farmleigh 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest furniture 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest galway 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest headford 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest kilkenny 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest killarneydo 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest killarneynm 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest mallow 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest mungret 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest phoenixpark 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest sligodo 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest trim 3333 -o xml --noheader >> "$LOGFILE"
+/opt/brandt/bspeedtest/bspeedtest waterford 3333 -o xml --noheader >> "$LOGFILE"
+
+exit 0
+

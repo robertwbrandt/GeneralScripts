@@ -1,0 +1,46 @@
+#! /bin/sh
+##############################################################################
+##############################################################################
+# Author: Bob Brandt projects@brandt.ie,                                     #
+#                                                                            #
+# saveswitch                                                                 #
+#                                                                            #
+#  The purpose of this script it to save to configuration of the Alcatel     #
+# switches in the network.  This is needed because not every VLAN/Port       #
+# change is saved and if the switch/stack were to reboot you may loss your   #
+# configuration changes.                                                     #
+#                                                                            #
+# Comments can be used but must be preceeded by a hash symbol (#)            #
+# All Comments are to be preceded by a hash symbol (#) (Maximum of 78 chars) #
+#                                                                            #
+##############################################################################
+##############################################################################
+
+# Command to authorize SSH access on Alcatel Switches: aaa authentication ssh local
+
+username="backupadmin"
+password="C0mmv@ult"
+
+/opt/opw/saveswitch/saveswitch "Dublin-Core" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-1st-STK1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-4th-STK1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-Crows-SC1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-ENH-SC1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-Ombud-STK1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-Ombud-SC1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-Ombud-SC2" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-Visitor-SC1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-1st-STK2" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Dublin-VMware-STK1" "$username" "$password" &
+
+/opt/opw/saveswitch/saveswitch "Trim-Core" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Trim-VMware-STK1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Trim-3rd-SC1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Trim-2nd-SC1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "Trim-1st-SC1" "$username" "$password" & 
+/opt/opw/saveswitch/saveswitch "Trim-1st-STK1" "$username" "$password" &
+
+/opt/opw/saveswitch/saveswitch "HatchSt-STK1" "$username" "$password" &
+/opt/opw/saveswitch/saveswitch "HatchSt-STK2" "$username" "$password" & 
+/opt/opw/saveswitch/saveswitch "Kilkenny-STK1" "$username" "$password" &
+
