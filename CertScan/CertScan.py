@@ -7,6 +7,9 @@ import argparse, textwrap, datetime
 import xml.etree.cElementTree as ElementTree
 import subprocess
 
+# from socket import *
+import ssl, OpenSSL, socket
+
 # Import Brandt Common Utilities
 import sys, os
 sys.path.append( os.path.realpath( os.path.join( os.path.dirname(__file__), "/opt/brandt/common" ) ) )
@@ -84,29 +87,61 @@ def command_line_args():
   if args['delimiter']: args['delimiter'] = args['delimiter'][0]
   if not args['delimiter'] and args['output'] == "csv": args['delimiter'] = ","
 
+def get_ssl_info(ipaddress, ports = []):
+  ipaddress = str(ipaddress)
+  if not ports: ports = range(65536)
+  if not os.system("ping -c 1 " + ipaddress):
+    for port in ports:
+      try:
+        cert = ssl.get_server_certificate((ipaddress,int(port)))
+        x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+        print ipaddress + ":" + str(port), x509.get_subject().get_components()
+      except:
+        pass
+        # print ipaddress + ":" + str(port) + " is not a ssl port."
+  else:
+    print ipaddress + " is not reachable."
+
+
+
+
 def get_data():
   global args
-  command = 'nmap --privileged --version-intensity 1 -sV --stylesheet /opt/brandt/GeneralScripts/CertScan/certscan.xslt -oX - ' + " ".join(args['target'])
+  command = 'nmap --privileged --version-light  --allports -sV -oX - ' + " ".join(args['target'])
+  command += ' | xsltproc GeneralScripts/CertScan/certscan.xslt -'
 
   p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   out, err = p.communicate()
   if err: raise IOError(err)
-  xml = ElementTree.fromstring(out)
 
-  xslt = ElementTree.fromstring("""<?xml version="1.0" encoding="ascii"?>
-<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-<xsl:output method="text" encoding="acsii"/>
-<xsl:template match="/nmaprun/host">
-  <xsl:variable name="addr" select="address/@addr" />
-  <xsl:for-each select="ports/port[@protocol='tcp' and ./service/@tunnel='ssl']">
-        <xsl:value-of select="$addr"/>:<xsl:value-of select="@portid"/>
-  </xsl:for-each>
-</xsl:template>
-</xsl:stylesheet>""")
+  socket.setdefaulttimeout(5)
+  certs = []
+  out = out.strip()
+  for line in out.split():
+    ip,port = line.split(":")
+    try:
+      cert = ssl.get_server_certificate((ip,int(port)), ssl_version=ssl.PROTOCOL_SSLv23)
+      x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+      subject = ",".join([ "=".join(x) for x in x509.get_subject().get_components() ])
+      issuer = ",".join([ "=".join(x) for x in x509.get_issuer().get_components() ])
+      notbefore = x509.get_notBefore()
+      notafter = x509.get_notAfter()
+      expired = x509.has_expired()
+    except:
+      subject = "error"
+      issuer = ""
+      notbefore = ""
+      notafter = ""
+      expired = ""
+    certs.append({"address":ip,
+                  "port":port,
+                  "subject": subject,
+                  "issuer": issuer,
+                  "notbefore": notbefore,
+                  "notafter": notafter,
+                  "expired": expired})
 
-  print ElementTree.tostring(xml, encoding=encoding, method="xml")
-
-  return ("10.200.200.1", 443)
+  return certs
 
 
 # Start program
@@ -119,7 +154,8 @@ if __name__ == "__main__":
 
     command_line_args()  
     for tmp in get_data():
-      print tmp
+      # print tmp
+      pass
 
   #   if len(users) == 1:
   #     xmldata = zarafa_user(users[0].split(";")[headers.index("username")])

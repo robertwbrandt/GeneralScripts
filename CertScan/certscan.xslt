@@ -10,7 +10,8 @@
 <xsl:template match="/nmaprun/host">
 	<xsl:variable name="addr" select="address/@addr" />
 	<xsl:for-each select="ports/port[@protocol='tcp' and ./service/@tunnel='ssl']">
-		<xsl:value-of select="$addr"/>:<xsl:value-of select="@portid"/>
+<xsl:value-of select="$addr"/>:<xsl:value-of select="@portid"/><xsl:text>
+</xsl:text>
 	</xsl:for-each>
 </xsl:template>
 </xsl:stylesheet>
