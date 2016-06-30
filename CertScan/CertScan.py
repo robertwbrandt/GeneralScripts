@@ -6,9 +6,7 @@ http://security.stackexchange.com/questions/55997/nmap-ssl-service-detection-how
 import argparse, textwrap, datetime
 import xml.etree.cElementTree as ElementTree
 import subprocess
-
-# from socket import *
-import ssl, OpenSSL, socket
+import ssl, OpenSSL, socket, netaddr
 
 # Import Brandt Common Utilities
 import sys, os
@@ -18,7 +16,7 @@ sys.path.pop()
 
 args = {}
 args['output'] = 'text'
-args['target'] = ''
+args['target'] = []
 args['delimiter'] = ""
 version = 0.3
 encoding = 'utf-8'
@@ -87,59 +85,53 @@ def command_line_args():
   if args['delimiter']: args['delimiter'] = args['delimiter'][0]
   if not args['delimiter'] and args['output'] == "csv": args['delimiter'] = ","
 
-def get_ssl_info(ipaddress, ports = []):
-  ipaddress = str(ipaddress)
-  if not ports: ports = range(65536)
-  if not os.system("ping -c 1 " + ipaddress):
-    for port in ports:
-      try:
-        cert = ssl.get_server_certificate((ipaddress,int(port)))
-        x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
-        print ipaddress + ":" + str(port), x509.get_subject().get_components()
-      except:
-        pass
-        # print ipaddress + ":" + str(port) + " is not a ssl port."
-  else:
-    print ipaddress + " is not reachable."
-
-
-
 
 def get_data():
   global args
-  command = 'nmap --privileged --version-light  --allports -sV -oX - ' + " ".join(args['target'])
-  command += ' | xsltproc GeneralScripts/CertScan/certscan.xslt -'
-
-  p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  out, err = p.communicate()
-  if err: raise IOError(err)
 
   socket.setdefaulttimeout(5)
   certs = []
-  out = out.strip()
-  for line in out.split():
-    ip,port = line.split(":")
-    try:
-      cert = ssl.get_server_certificate((ip,int(port)), ssl_version=ssl.PROTOCOL_SSLv23)
-      x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
-      subject = ",".join([ "=".join(x) for x in x509.get_subject().get_components() ])
-      issuer = ",".join([ "=".join(x) for x in x509.get_issuer().get_components() ])
-      notbefore = x509.get_notBefore()
-      notafter = x509.get_notAfter()
-      expired = x509.has_expired()
-    except:
-      subject = "error"
-      issuer = ""
-      notbefore = ""
-      notafter = ""
-      expired = ""
-    certs.append({"address":ip,
-                  "port":port,
-                  "subject": subject,
-                  "issuer": issuer,
-                  "notbefore": notbefore,
-                  "notafter": notafter,
-                  "expired": expired})
+  for ip in netaddr.IPSet(args['target']):
+    ip = str(ip)
+    command = 'ping -c 1 "' + ip + '" > /dev/null'  
+    command += ' && nmap --privileged --version-light --allports -sV -oX - "' + ip + '"'
+    command += ' | xsltproc GeneralScripts/CertScan/certscan.xslt -'
+
+    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    if not  p.returncode:
+      out = out.strip()
+      for line in out.split():
+        ip,port = line.split(":")
+        try:
+          cert = ssl.get_server_certificate((ip,int(port)), ssl_version=ssl.PROTOCOL_SSLv23)
+          x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+          subject = ",".join([ "=".join(x) for x in x509.get_subject().get_components() ])
+          issuer = ",".join([ "=".join(x) for x in x509.get_issuer().get_components() ])
+          notbefore = x509.get_notBefore()
+          notafter = x509.get_notAfter()
+          expired = str(bool(x509.has_expired()))
+        except:
+          subject = "Port Error"
+          issuer = ""
+          notbefore = ""
+          notafter = ""
+          expired = ""
+        certs.append({"address":ip,
+                      "port":port,
+                      "subject": subject,
+                      "issuer": issuer,
+                      "notbefore": notbefore,
+                      "notafter": notafter,
+                      "expired": expired})          
+    else:
+      certs.append({"address":ip,
+                    "port":"",
+                    "subject": "IP Error",
+                    "issuer": "",
+                    "notbefore": "",
+                    "notafter": "",
+                    "expired": ""})
 
   return certs
 
@@ -151,11 +143,10 @@ if __name__ == "__main__":
     error = ""
     xmldata = ElementTree.Element('error', code="-1", msg="Unknown Error", cmd=brandt.strXML(" ".join(sys.argv)))
     exitcode = 0
-
+ 
     command_line_args()  
-    for tmp in get_data():
-      # print tmp
-      pass
+    certs = get_data():
+
 
   #   if len(users) == 1:
   #     xmldata = zarafa_user(users[0].split(";")[headers.index("username")])
