@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """
 Python script to find and detail all SSL Certs on a network.
-http://security.stackexchange.com/questions/55997/nmap-ssl-service-detection-how-to-check-all-open-ports-only-for-ssl-service
+notes: You may need to install python-netaddr
+       You need to run this script as root or change the setuid on the nmap binary
 """
-import argparse, textwrap, datetime
+import argparse, textwrap, datetime, json
 import xml.etree.cElementTree as ElementTree
 import subprocess
 import ssl, OpenSSL, socket, netaddr
@@ -138,43 +139,54 @@ def get_data():
 
 # Start program
 if __name__ == "__main__":
-  # try:
+  try:
     output = ""
     error = ""
-    xmldata = ElementTree.Element('error', code="-1", msg="Unknown Error", cmd=brandt.strXML(" ".join(sys.argv)))
+    xmldata = ""
     exitcode = 0
  
     command_line_args()  
-    certs = get_data():
+    certs = get_data()
 
+  except SystemExit as err:
+    pass
+  except Exception as err:
+    try:
+      exitcode = int(err[0])
+      errmsg = str(" ".join(err[1:]))
+    except:
+      exitcode = -1
+      errmsg = str(err)
 
-  #   if len(users) == 1:
-  #     xmldata = zarafa_user(users[0].split(";")[headers.index("username")])
-  #   else:
-  #     xmldata = zarafa_users(users)
+    if args['output'] != 'xml': 
+      error = "(" + str(exitcode) + ") " + str(errmsg) + "\nCommand: " + " ".join(sys.argv)
+    else:
+      xmldata = ElementTree.Element('error', code=brandt.strXML(exitcode), 
+                                             msg=brandt.strXML(errmsg), 
+                                             cmd=brandt.strXML(" ".join(sys.argv)))
+  finally:
+    if args['output'] == 'xml':
+      xml = ElementTree.Element('certscan')
+      if xmldata: xml.append(xmldata)
+      for cert in certs:
+        xmluser = ElementTree.SubElement(xml, "certificate", **cert)
+      print '<?xml version="1.0" encoding="' + encoding + '"?>\n' + ElementTree.tostring(xml, encoding=encoding, method="xml")
 
-  # except SystemExit as err:
-  #   pass
-  # except Exception as err:
-  #   try:
-  #     exitcode = int(err[0])
-  #     errmsg = str(" ".join(err[1:]))
-  #   except:
-  #     exitcode = -1
-  #     errmsg = str(err)
+    else:
+      if error:
+        sys.stderr.write( str(error) + "\n" )
 
-  #   if args['output'] != 'xml': 
-  #     error = "(" + str(exitcode) + ") " + str(errmsg) + "\nCommand: " + " ".join(sys.argv)
-  #   else:
-  #     xmldata = ElementTree.Element('error', code=brandt.strXML(exitcode), 
-  #                                            msg=brandt.strXML(errmsg), 
-  #                                            cmd=brandt.strXML(" ".join(sys.argv)))
-  # finally:
-  #   if args['output'] != 'xml': 
-  #     if output: print str(output)
-  #     if error:  sys.stderr.write( str(error) + "\n" )
-  #   else:
-  #     xml = ElementTree.Element('zarafaadmin')
-  #     xml.append(xmldata)
-  #     print '<?xml version="1.0" encoding="' + encoding + '"?>\n' + ElementTree.tostring(xml, encoding=encoding, method="xml")
-  #   sys.exit(exitcode)
+      elif args['output'] == 'text':
+        print "IP Address", "port", "Subject", "Issuer", "Not Before", "Not After", "Expired"
+        for cert in certs:
+          print cert['address'], cert['port'], cert['subject'], cert['issuer'], cert['notbefore'], cert['notafter'], cert['expired']
+
+      elif args['output'] == 'csv':
+        print args['delimiter'].join(["IP Address","port", "Subject", "Issuer", "Not Before", "Not After", "Expired"])
+        for cert in certs:
+          print args['delimiter'].join([cert['address'], cert['port'], cert['subject'], cert['issuer'], cert['notbefore'], cert['notafter'], cert['expired']])
+
+      elif args['output'] == 'json':
+        print json.dumps(certs, sort_keys=True, indent=2)
+
+    sys.exit(exitcode)
