@@ -17,17 +17,19 @@ args = {}
 args['output'] = 'text'
 version = 0.3
 encoding = 'utf-8'
+parser = None
 
-ports = (("ftp",21),
+ports = [("ftp",21),
          ("telnet",23),
          ("HTTPS",443),
-         ("Alternative HTTPS",981)
+         ("Alternative HTTPS",981),
          ("Alternative HTTPS",1311),
          ("Alternative HTTPS",7000),
          ("Alternative HTTPS",8009),
-         ("Alternative HTTPS",8090,8443
+         ("Alternative HTTPS",8090),
+         ("Alternative HTTPS",8443)]
 
-
+targets = ["192.168.1.0/24"]
 
 class customUsageVersion(argparse.Action):
   def __init__(self, option_strings, dest, **kwargs):
@@ -55,7 +57,8 @@ class customUsageVersion(argparse.Action):
       print "\nWritten by Bob Brandt <projects@brandt.ie>."
     else:
       print "Usage: " + self.__prog + " [options]"
-      print "Script to find and detail all SSL Certs on a network.\n"
+      print "Script to find and detail all SSL Certs on a network."
+      print "This script requires root privileges or nmap must have root SUID.\n"      
       print "Options:"
       options = []
       options.append(("-h, --help",            "Show this help message and exit"))
@@ -68,7 +71,7 @@ class customUsageVersion(argparse.Action):
       for n in range(1,len(description)): print " " * (length + 5) + description[n]
     exit(self.__exit)
 def command_line_args():
-  global args, version
+  global args, version, parser
   parser = argparse.ArgumentParser(add_help=False)
   parser.add_argument('-v', '--version', action=customUsageVersion, version=version, max=80)
   parser.add_argument('-h', '--help', action=customUsageVersion)
@@ -85,12 +88,42 @@ def command_line_args():
 
 
 
-nmap --system-dns -oG - -sT -O -p 21,23,443,981,1311,7000,8009,8090,8443 10.200.150.0/24
-
-echo | openssl s_client -servername 10.200.150.15 -connect 10.200.200.25:443 2> /dev/null | openssl x509 -noout -dates -issuer
-
-
+#nmap --system-dns -oG - -sT -O -p 21,23,443,981,1311,7000,8009,8090,8443 192.168.1.0/24
+#echo | openssl s_client -servername 10.200.150.15 -connect 10.200.200.25:443 2> /dev/null | openssl x509 -noout -dates -issuer
 
 # Start program
 if __name__ == "__main__":
+  command_line_args()  
+
+
+  cmd =  "nmap --system-dns -oG - -sT -A"
+  cmd += " -p " + ",".join([ str(port) for name,port in ports ])
+  targets = [''] + targets
+  cmd += " ".join(targets)
+
+  print "Trying to run command:", cmd
+
+  p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  out, err = p.communicate()
+  if p.returncode != 0:
+    print err
+    sys,exit(p.returncode)
+
+  # https://nmap.org/book/output-formats-grepable-output.html
+  data = [ x.split("\t") for x in out.split("\n") if str(x[:5]).lower() == "host:" and "ports:" in str(x).lower() ]
+  hosts = []
+  for line in data:
+    host = {"ip":"", "dns":"", "status":"", "ports":{}, "ignored state":"", "os":"", "seq index":"", "ip id seq":""}
+    for entry in line:
+      if str(entry[:5]).lower() == "host:":
+        entry = str(entry[5:]).strip().replace("(","/").replace(")","")
+        host["ip"],host["dns"] = entry.split("/")[:2]
+        host["ip"] = str(host["ip"]).strip()
+        host["dns"] = str(host["dns"]).strip().lower()
+
+      if str(entry[:6]).lower() == "ports:":
+        for port in str(entry[6:]).split(","):
+          print port
+      
+      print host
 
