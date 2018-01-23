@@ -1,11 +1,11 @@
 #!/bin/bash
 #
-#     Script to create Disk Usage Report
+#     Script to create Duplicate File Report
 #     Bob Brandt <projects@brandt.ie>
-#  
+# 
 VERSION=0.1
 excludeDir="*~snapshot*"
-depth=3
+minSize="1M"
 
 usage() {
         [ "$2" == "" ] || echo -e "$2"
@@ -26,30 +26,35 @@ version() {
         exit 0
 }
 
-getdu() {
+getmd5sum() {
 	scanPath="$1"
 	printPath="$2"
 
 	datestr=$( stat -c %Y "$scanPath" )
 	datestr=$( date -d "@$datestr" +"%Y-%m-%d %H:%M" )
 	
-	dustr=$( du -s "$scanPath" | cut -f 1 )
+	namemd5sum=$( basename "$scanPath" | md5sum | cut -d " " -f 1 )
+	sizestr=$( stat -c %s "$scanPath" )
+	sizemd5sum=$( echo "$sizestr" | md5sum | cut -d " " -f 1 )
 
-	echo "\"$dustr\",\"$datestr\",\"$printPath\""
+	md5str=$( md5sum "$scanPath" | cut -d " " -f 1 )
+	echo -n "." >&2
+	echo "\"$md5str$sizemd5sum\",\"$sizestr\",\"$printPath\""
 }
-
 
 scanDir() {
 	fullpath=$( realpath "$1" )
+	tmpFile=${TEMP:-"/tmp"}"/$$."$( basename "$1" )
+	rm "$tmpFile"
 
-	echo "Scanning Directory ($fullpath):"
+	echo "Scanning Directory ($fullpath):" >&2
 	IFS=$'\n'       # make newlines the only separator	
-	for dir in $( find "$fullpath" -maxdepth $depth -path "$excludeDir" -iname "$excludeDir" -prune -o -type d -print )
+	for dir in $( find "$fullpath" -path "$excludeDir" -iname "$excludeDir" -prune -o -type f  -size +$minSize -print )
 	do
 		relativepath=${dir/$fullpath/}
 		relativepath="./"${relativepath/\//}
 
-		getdu "$dir" "$relativepath" &
+		getmd5sum "$dir" "$relativepath" >> "$tmpFile" &
 	done
 
 	# Wait for all subprocesses to exit
@@ -61,6 +66,10 @@ scanDir() {
     		break
 			}
 	done;
+
+	echo -e "\n\n"
+	sort "$tmpFile" | uniq --check-char=66 -D
+	# rm "$tmpFile"	
 }
 
 # Execute getopt
@@ -95,3 +104,6 @@ do
 done
 
 exit $?
+
+
+
