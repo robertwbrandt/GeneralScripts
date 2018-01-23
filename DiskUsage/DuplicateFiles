@@ -68,8 +68,12 @@ scanDir() {
 	done;
 
 	echo -e "\n\n"
-	sort "$tmpFile" | uniq --check-char=66 -D
-	# rm "$tmpFile"	
+	sort "$tmpFile" | uniq --check-char=66 -D > "$tmpFile.sorted"
+	uniq --check-char=66 -c "$tmpFile.sorted" | sed 's|^ *\([0-9][0-9]*\) "\([0-9a-f]*\)".*|"\2","\1"|' > "$tmpFile.count"
+	join -t "," -j 1 -o 2.1,1.1,1.2,1.3 "$tmpFile.sorted" "$tmpFile.count"
+
+	rm "$tmpFile"	
+	rm "$tmpFile.*"
 }
 
 # Execute getopt
