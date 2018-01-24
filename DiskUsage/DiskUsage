@@ -11,8 +11,9 @@ usage() {
         [ "$2" == "" ] || echo -e "$2"
         echo -e "Usage: $0 Directory [options]"
         echo -e "Options:"
+        echo -e " -d, --depth    Maximum depth to search for directories (Default: $depth)"
         echo -e " -h, --help     display this help and exit"
-        echo -e " -v, --version  output version information and exit"       
+        echo -e " -v, --version  output version information and exit"
         exit ${1:-0}
 }
 
@@ -29,13 +30,11 @@ version() {
 getdu() {
 	scanPath="$1"
 	printPath="$2"
-
-	datestr=$( stat -c %Y "$scanPath" )
-	datestr=$( date -d "@$datestr" +"%Y-%m-%d %H:%M" )
 	
-	dustr=$( du -s "$scanPath" | cut -f 1 )
-
-	echo "\"$dustr\",\"$datestr\",\"$printPath\""
+	if datestr=$( stat -c %Y "$scanPath" ) && datestr=$( date -d "@$datestr" +"%Y-%m-%d %H:%M" ) && dustr=$( du -s "$scanPath" | cut -f 1 )
+	then
+		echo "\"$dustr\",\"$datestr\",\"$printPath\""
+	fi
 }
 
 
@@ -43,7 +42,7 @@ scanDir() {
 	fullpath=$( realpath "$1" )
 
 	echo "Scanning Directory ($fullpath):"
-	IFS=$'\n'       # make newlines the only separator	
+	IFS=$'\n'       # make newlines the only separator
 	for dir in $( find "$fullpath" -maxdepth $depth -path "$excludeDir" -iname "$excludeDir" -prune -o -type d -print )
 	do
 		relativepath=${dir/$fullpath/}
@@ -64,7 +63,7 @@ scanDir() {
 }
 
 # Execute getopt
-ARGS=$(getopt -o vh -l "help,version" -n "$0" -- "$@") || usage 1 " "
+ARGS=$(getopt -o d:vh -l "depth:,help,version" -n "$0" -- "$@") || usage 1 " "
 
 #Bad arguments
 #[ $? -ne 0 ] && usage 1 "$0: No arguments supplied!\n"
@@ -73,6 +72,7 @@ eval set -- "$ARGS";
 
 while /bin/true ; do
 	case "$1" in
+        -d | --depth )        depth="$2" ; shift ;;
         -h | --help )         usage 0 ;;
         -v | --version )      version ;;
         -- )                  shift ; break ;;

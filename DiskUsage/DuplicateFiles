@@ -11,6 +11,7 @@ usage() {
         [ "$2" == "" ] || echo -e "$2"
         echo -e "Usage: $0 Directory [options]"
         echo -e "Options:"
+        echo -e " -m, --minsize  Minimum file size to search for (Default: $minSize)"
         echo -e " -h, --help     display this help and exit"
         echo -e " -v, --version  output version information and exit"       
         exit ${1:-0}
@@ -30,16 +31,15 @@ getmd5sum() {
 	scanPath="$1"
 	printPath="$2"
 
-	datestr=$( stat -c %Y "$scanPath" )
-	datestr=$( date -d "@$datestr" +"%Y-%m-%d %H:%M" )
-	
 	namemd5sum=$( basename "$scanPath" | md5sum | cut -d " " -f 1 )
 	sizestr=$( stat -c %s "$scanPath" )
 	sizemd5sum=$( echo "$sizestr" | md5sum | cut -d " " -f 1 )
 
-	md5str=$( md5sum "$scanPath" | cut -d " " -f 1 )
-	echo -n "." >&2
-	echo "\"$md5str$sizemd5sum\",\"$sizestr\",\"$printPath\""
+	if datestr=$( stat -c %Y "$scanPath" ) && datestr=$( date -d "@$datestr" +"%Y-%m-%d %H:%M" ) && md5str=$( md5sum "$scanPath" | cut -d " " -f 1 )
+	then
+		echo -n "." >&2
+		echo "\"$md5str$sizemd5sum\",\"$sizestr\",\"$printPath\""
+	fi
 }
 
 scanDir() {
@@ -77,7 +77,7 @@ scanDir() {
 }
 
 # Execute getopt
-ARGS=$(getopt -o vh -l "help,version" -n "$0" -- "$@") || usage 1 " "
+ARGS=$(getopt -o m:vh -l "minsize:,help,version" -n "$0" -- "$@") || usage 1 " "
 
 #Bad arguments
 #[ $? -ne 0 ] && usage 1 "$0: No arguments supplied!\n"
@@ -86,6 +86,7 @@ eval set -- "$ARGS";
 
 while /bin/true ; do
 	case "$1" in
+        -m | --minsize )      minSize="$2" ; shift ;;
         -h | --help )         usage 0 ;;
         -v | --version )      version ;;
         -- )                  shift ; break ;;
