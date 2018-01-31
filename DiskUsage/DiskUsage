@@ -30,10 +30,12 @@ version() {
 getdu() {
 	scanPath="$1"
 	printPath="$2"
+	printPath2="${printPath//\//}"
+	declare -i pathLength=$(( ${#printPath} - ${#printPath2} ))
 	
 	if datestr=$( stat -c %Y "$scanPath" ) && datestr=$( date -d "@$datestr" +"%Y-%m-%d %H:%M" ) && dustr=$( du -s "$scanPath" | cut -f 1 )
 	then
-		echo "\"$dustr\",\"$datestr\",\"$printPath\""
+		echo "\"$dustr\",\"$datestr\",\"$pathLength\",\"$printPath\""
 	fi
 }
 
@@ -41,7 +43,7 @@ getdu() {
 scanDir() {
 	fullpath=$( realpath "$1" )
 
-	echo "Scanning Directory ($fullpath):"
+	echo "Scanning Directory ($fullpath):" >&2
 	IFS=$'\n'       # make newlines the only separator
 	for dir in $( find "$fullpath" -maxdepth $depth -path "$excludeDir" -iname "$excludeDir" -prune -o -type d -print )
 	do

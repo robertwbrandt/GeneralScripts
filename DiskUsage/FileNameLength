@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+#     Script to create Disk Usage Report
+#     Bob Brandt <projects@brandt.ie>
+#  
+VERSION=0.1
+excludeDir="*~snapshot*"
+depth=3
+
+usage() {
+    [ "$2" == "" ] || echo -e "$2"
+    echo -e "Usage: $0 Directory [options]"
+    echo -e "Options:"
+    echo -e " -d, --depth    Maximum depth to search for directories (Default: $depth)"
+    echo -e " -h, --help     display this help and exit"
+    echo -e " -v, --version  output version information and exit"
+    exit ${1:-0}
+}
+
+version() {
+    echo -e "$0 $VERSION"
+    echo -e "Copyright (C) 2011 Free Software Foundation, Inc."
+    echo -e "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>."
+    echo -e "This is free software: you are free to change and redistribute it."
+    echo -e "There is NO WARRANTY, to the extent permitted by law.\n"
+    echo -e "Written by Bob Brandt <projects@brandt.ie>."
+    exit 0
+}
+
+
+
+fullpath="/mnt/sg200-ntap-svm/dublingroups/Architectural/Shared/General Projects/Not Completed/"
+
+echo "Scanning Directory ($fullpath):" >&2
+IFS=$'\n'       # make newlines the only separator
+for file in $( find "$fullpath" -maxdepth $depth -path "$excludeDir" -iname "$excludeDir" -prune -o -type f -print )
+do
+    declare -i length=$( echo "$file" | wc -m )
+    if (( $length > 25 )); then
+        echo "$length,$file"
+    fi
+done

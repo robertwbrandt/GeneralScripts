@@ -13,7 +13,7 @@ usage() {
         echo -e "Options:"
         echo -e " -m, --minsize  Minimum file size to search for (Default: $minSize)"
         echo -e " -h, --help     display this help and exit"
-        echo -e " -v, --version  output version information and exit"       
+        echo -e " -v, --version  output version information and exit"
         exit ${1:-0}
 }
 
@@ -47,7 +47,7 @@ scanDir() {
 	tmpFile=${TEMP:-"/tmp"}"/$$."$( basename "$1" )
 	rm "$tmpFile" > /dev/null 2>&1
 
-	echo "Scanning Directory ($fullpath):" >&2
+	echo -n "Scanning Directory ($fullpath) for files larger then $minSize:" >&2
 	IFS=$'\n'       # make newlines the only separator	
 	for dir in $( find "$fullpath" -path "$excludeDir" -iname "$excludeDir" -prune -o -type f  -size +$minSize -print )
 	do
