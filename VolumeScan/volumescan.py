@@ -3,9 +3,8 @@
 """
 Python script to scan a directory for certain file types
 """
-import argparse, os, fnmatch
-import textwrap, datetime
-import subprocess
+import argparse, os, fnmatch, datetime, subprocess, json
+import textwrap
 
 # Import Brandt Common Utilities
 import sys, os
@@ -25,6 +24,20 @@ args['path'] = None
 
 searchResult = []
 pastUsages = {}
+
+defaultThunderbird = (("Thunderbird","*.msf"))
+defaultWindowsProfile = (("Windows Profile","ntuser.dat"))
+defaultPMail = (("PMail","*.pmm"))
+defaultBackups = (("Backups","*laptop*"),
+                  ("Backups","*HDD*"),
+                  ("Backups","*copy of*"),
+                  ("Backups","*old*"),
+                  ("Backups","*backup*"),
+                  ("Backups","*recovered*"),
+                  ("Backups","*pc*"),
+                  ("Backups","*drive*"),
+                  ("Backups","*profile*"))
+
 
 class customUsageVersion(argparse.Action):
   def __init__(self, option_strings, dest, **kwargs):
@@ -61,6 +74,10 @@ class customUsageVersion(argparse.Action):
       options.append(("-m, --media [EXT,[EXT]...]",          "Find media files."))
       options.append(("-s, --size LABEL PATTERN",            "Report the size (usage) of directories matching a give pattern."))
       options.append(("-p, --parentsize LABEL PATTERN",      "Report the size (usage) of parent directory of a file matching a give pattern."))
+      options.append(("    --thunderbird",                   "Find Thunderbird Mail Folders."))
+      options.append(("    --windowsprofile",                "Find Windows Profile Folders."))
+      options.append(("    --pmail",                         "Find Pegasus Mail Folders."))
+      options.append(("    --backup",                        "Find Backup Folders."))
       options.append(("path",                    "Path to search."))
       length = max( [ len(option[0]) for option in options ] )
       for option in options:
@@ -96,7 +113,12 @@ def command_line_args():
           required=False,
           action='append',
           type=str,
-          help="Report the size (usage) of parent directory of a file matching a give pattern.")  
+          help="Report the size (usage) of parent directory of a file matching a give pattern.")
+  parser.add_argument('--thunderbird', action=store_true)
+
+
+
+
   parser.add_argument('path',
           nargs='+',    
           action='store',
@@ -116,6 +138,9 @@ def command_line_args():
   if args['media']: args['media'] = [ str(x).lower() for x in args['media'] ]
   if args['ignore']: args['ignore'] = [ str(x).lower() for x in args['ignore'] ]
 
+
+
+
 def imatch(string,pattern):
   try:
     return fnmatch.fnmatch(unicode(string).lower(),unicode(pattern).lower())
@@ -134,6 +159,24 @@ def getSize(path,file=None):
     return -1  
 
 
+def getDate(path,file=None):
+  try:
+    if file: path = os.path.join(path,file)
+
+    return str(datetime.fromtimestamp(os.path.getmtime(path)).strftime('%Y-%m-%d %H:%M:%S')) 
+  except:
+    return "---"
+
+
+
+def getListing(path):
+  try:
+    return os.listdir(unicode(path))
+  except:
+    return []
+
+
+
 def checkMedia(path, entry):
   global args,searchResult
 
@@ -144,7 +187,8 @@ def checkMedia(path, entry):
       searchResult.append({"type":"media",
                            "path":path,
                            "entry":entry,
-                           "size":getSize(path,entry)})
+                           "size":getSize(path,entry),
+                           "modified":getDate(path,entry)})
       break
 
 
@@ -153,12 +197,13 @@ def checkParentSize(path):
 
   if os.path.isdir(path):
     for entry in args["parentsize"]:
-      for item in os.listdir(unicode(path)):
+      for item in getListing(path):
         if imatch(item,entry['pattern']):
           searchResult.append({"type":entry['label'],
                                "path":path,
                                "entry":entry['pattern'],
-                               "size":getSize(path)})
+                               "size":getSize(path),
+                               "modified":getDate(path)})
           return True
 
   return False
@@ -176,7 +221,8 @@ def checkPathSize(path):
       searchResult.append({"type":entry['label'],
                            "path":path,
                            "entry":entry['pattern'],
-                           "size":getSize(path)})
+                           "size":getSize(path),
+                           "modified":getDate(path)})
 
 
 def searchPath(path):
@@ -193,7 +239,7 @@ def searchPath(path):
 
   if args['size']: checkPathSize(path)
   if not (args["parentsize"] and checkParentSize(path)):
-    for item in os.listdir(unicode(path)):
+    for item in getListing(path):
       try:
         fullpath = os.path.join(path,item)
       except:
@@ -224,19 +270,7 @@ if __name__ == "__main__":
     searchPath(path)
 
 
-  print searchResult
-
-
-
-
-
-
-
-
-
-
-
-
+  json.dumps(searchResult, sort_keys=True, indent=2)
 
 
   sys.exit(0)
