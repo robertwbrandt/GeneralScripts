@@ -2,12 +2,18 @@
 
 mailserver=smtp.opw.ie
 from=diskusage@opw.ie
-to=storagealerts@opw.ie
+#to=storagealerts@opw.ie
+to=bob.brandt@opw.ie
+
 
 mount -a
 set smtp=$mailserver
-/opt/opw/DiskUsage/DiskUsage /mnt/opw-filer01/dublingroups/* | mailx -s "Dublin Group Usage Report" -r "$from" "$to" &
-/opt/opw/DiskUsage/DiskUsage /mnt/opw-filer02/dublinusers/* | mailx -s "Dublin Users Usage Report" -r "$from" "$to" &
-/opt/opw/DiskUsage/DiskUsage /mnt/opw-filer03/trimgroups/* | mailx -s "Trim Group Usage Report" -r "$from" "$to" &
-/opt/opw/DiskUsage/DiskUsage /mnt/opw-filer04/trimusers/* | mailx -s "Trim Users Usage Report" -r "$from" "$to" &
+
+/opt/brandt/GeneralScripts/DiskUsage/DiskUsage -r -t "DublinUsers" -o "/home/BrandtB/dublinusers.du.csv" /mnt/sg200-ntap-svm/dublinusers/ 2>&1 > "/home/BrandtB/dublinusers.du.txt" &
+
+
+# /opt/opw/DiskUsage/DiskUsage /mnt/opw-filer01/dublingroups/* | mailx -s "Dublin Group Usage Report" -r "$from" "$to" &
+# /opt/opw/DiskUsage/DiskUsage /mnt/opw-filer02/dublinusers/* | mailx -s "Dublin Users Usage Report" -r "$from" "$to" &
+# /opt/opw/DiskUsage/DiskUsage /mnt/opw-filer03/trimgroups/* | mailx -s "Trim Group Usage Report" -r "$from" "$to" &
+# /opt/opw/DiskUsage/DiskUsage /mnt/opw-filer04/trimusers/* | mailx -s "Trim Users Usage Report" -r "$from" "$to" &
 

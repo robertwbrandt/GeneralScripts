@@ -5,15 +5,21 @@
 #  
 VERSION=0.1
 excludeDir="*~snapshot*"
+report=
+title=
+output=/dev/stdout
 depth=3
 
 usage() {
         [ "$2" == "" ] || echo -e "$2"
         echo -e "Usage: $0 Directory [options]"
         echo -e "Options:"
+        echo -e " -r, --report   Display a report rather then a CSV"
+        echo -e " -t, --title    Title of the Report (Default: the directory scanned)"
+        echo -e " -o, --output   Filename for Outputed CSV (Default: $output)"
         echo -e " -d, --depth    Maximum depth to search for directories (Default: $depth)"
-        echo -e " -h, --help     display this help and exit"
-        echo -e " -v, --version  output version information and exit"
+        echo -e " -h, --help     Display this help and exit"
+        echo -e " -v, --version  Output version information and exit"
         exit ${1:-0}
 }
 
@@ -39,11 +45,10 @@ getdu() {
 	fi
 }
 
-
 scanDir() {
 	fullpath=$( realpath "$1" )
-
-	echo "Scanning Directory ($fullpath):" >&2
+	local dir=
+	
 	IFS=$'\n'       # make newlines the only separator
 	for dir in $( find "$fullpath" -maxdepth $depth -path "$excludeDir" -iname "$excludeDir" -prune -o -type d -print )
 	do
@@ -64,8 +69,55 @@ scanDir() {
 	done;
 }
 
+convertSizeHuman(){
+    declare -i size="$1"
+    formatstr="${2:-%0.2f}"
+
+    if (( $size >= 1073741824 )); then
+        printf "$formatstr TB" $( echo "scale=2; $size/1073741824" | bc )
+    elif (( $size >= 1048576 )); then
+        printf "$formatstr GB"  $( echo "scale=2; $size/1048576" | bc )
+    elif (( $size >= 1024 )); then
+        printf "$formatstr MB"  $( echo "scale=2; $size/1024" | bc )
+    elif (( $size >= 0 )); then
+        printf "$formatstr KB" $size
+    else
+        return 1
+    fi
+}
+
+generateReport() {
+    csvfile="$1"
+    title="$2"
+    tmp=$( grep ',"1",' $csvfile )
+
+    declare -i total=$( echo "$tmp" | grep ',"./"' | head -n 1 | sed 's|^"\([0-9]*\)",.*|\1|' )
+    
+    tmp=$( echo "$tmp" | grep -v ',"./"' )
+    declare -i count=$( echo "$tmp" | wc -l )
+    declare -i average=$( echo "$tmp" | sed 's|^"\([0-9]*\)",.*|\1|' | paste -sd+ | bc )
+    declare -i average=$(( $average/$count ))
+
+    echo -e "\nBelow is the Disk Usage Report for $title ($( date +%Y/%m/%d )).\n"
+
+    echo "              Total Size: "$( convertSizeHuman $total "%7.2f")
+    echo "Average Root Folder Size: "$( convertSizeHuman $average "%7.2f")" ($count root folders)"
+
+    echo -e "\nThe following are the worst offenders:"
+
+
+    IFS=$'\n'
+    for line in $( echo "$tmp" | sed 's|^"\([0-9]*\)",.*|\1,&|' | sort -nr ); do
+        declare -i size=$( echo "$line" | cut -d "," -f 1 )
+        if (( $size >= $average )); then
+            path=$( echo "$line" | cut -d "," -f 5 | sed 's|"||g')
+            echo -e $( convertSizeHuman $size "%8.2f")"\t$path"
+        fi
+    done
+}
+
 # Execute getopt
-ARGS=$(getopt -o d:vh -l "depth:,help,version" -n "$0" -- "$@") || usage 1 " "
+ARGS=$(getopt -o rt:o:d:vh -l "report,title:,output:,depth:,help,version" -n "$0" -- "$@") || usage 1 " "
 
 #Bad arguments
 #[ $? -ne 0 ] && usage 1 "$0: No arguments supplied!\n"
@@ -74,6 +126,9 @@ eval set -- "$ARGS";
 
 while /bin/true ; do
 	case "$1" in
+        -r | --report )       report=1 ;;
+        -t | --title )        title="$2" ; shift ;;
+        -o | --output )       output="$2" ; shift ;;
         -d | --depth )        depth="$2" ; shift ;;
         -h | --help )         usage 0 ;;
         -v | --version )      version ;;
@@ -92,7 +147,23 @@ done
 
 for dir in "$@"
 do
-	scanDir "$dir"
+	if [ -n "$report" ] && [ "$output" == "/dev/stdout" ]; then
+		scanoutput=$( echo "$dir" | sed -e "s|/|.|g" -e "s|[^a-zA-Z.]||g" -e "s|^\.*||" )
+		scanoutput="/tmp/$$.$scanoutput.csv"
+	else
+		scanoutput="$output"
+	fi
+	echo -n "Scanning Directory (" ; echo -n $( realpath "$dir" ) ; echo ") to $scanoutput:" >&2
+	scanDir "$dir" > "$scanoutput"
+
+	if [ -n "$report" ]; then
+		if [ -n "$title" ]; then
+			reporttitle="$title"
+		else
+			reporttitle="$dir"
+		fi
+		generateReport "$scanoutput" "$reporttitle"
+	fi
 	echo -e "\n"
 done
 
